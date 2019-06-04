@@ -1,11 +1,11 @@
-# Built kernel module path
-set(traceModulePath ${CMAKE_CURRENT_SOURCE_DIR}/iotrace.ko)
+execute_process(OUTPUT_VARIABLE kernelName OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -r)
+set(traceModuleBuildPath ${CMAKE_CURRENT_SOURCE_DIR}/iotrace.ko)
+set(traceModuleInstallPath "lib/modules/${kernelName}/extra")
 
 if(DEFINED ENV{KERNEL_SRCS})
 	set(kernelSourcesPath $ENV{KERNEL_SRCS})
 	message(STATUS "Custom kernel sources path chosen: $ENV{KERNEL_SRCS}")
 else()
-	execute_process(OUTPUT_VARIABLE kernelName OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -r)
 	set(kernelSourcesPath "/lib/modules/${kernelName}/build")
 endif()
 
@@ -31,7 +31,7 @@ set(moduleSources
 # Module is built in source tree, and then all build artifacts are copied
 # to binary directory
 add_custom_command(
-	OUTPUT  ${traceModulePath}
+	OUTPUT  ${traceModuleBuildPath}
 	COMMAND cd ${kernelSourcesPath} && make
 	I=${CMAKE_CURRENT_LIST_DIR}/../includes
 	IOTRACE_VERSION="${IOTRACE_VERSION}"
@@ -51,12 +51,12 @@ if (DEFINED ENV{KERNEL_SRCS} OR
 
 	add_custom_target(traceModule
 		ALL
-		DEPENDS ${traceModulePath}
+		DEPENDS ${traceModuleBuildPath}
 	)
 
 	# Install kernel module and run depmod
-	install(FILES "${traceModulePath}"
-		DESTINATION "/lib/modules/${kernelName}/extra"
+	install(FILES "${traceModuleBuildPath}"
+		DESTINATION "${traceModuleInstallPath}"
 		COMPONENT iotrace-install
 	)
 	install(CODE "execute_process(COMMAND depmod)"
